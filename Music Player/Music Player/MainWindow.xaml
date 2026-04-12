@@ -154,23 +154,23 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock Text="Music Player" Foreground="{StaticResource PrimaryText}" FontSize="20" FontWeight="Bold" />
-                <Button Grid.Row="1" Content="Home" Style="{StaticResource SidebarButtonStyle}" Margin="0,12,0,0" />
+                <Button Grid.Row="1" Content="Home" Style="{StaticResource SidebarButtonStyle}" Margin="0,12,0,0" Click="HomeButton_Click" />
                 <Button Grid.Row="2" Content="Browse" Style="{StaticResource SidebarButtonStyle}" Margin="0,4,0,0" />
 
                 <TextBlock Grid.Row="4" Text="Your Library" Foreground="{StaticResource SecondaryText}" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
                 <ScrollViewer Grid.Row="5" VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
                     <StackPanel>
-                        <Button Content="All songs" Style="{StaticResource SidebarButtonStyle}" />
+                        <Button Content="All songs" Style="{StaticResource SidebarButtonStyle}" Click="OpenPlaylistView_Click" Tag="All songs" />
                         <DockPanel Margin="0,6,0,0">
-                            <Button Content="Pop" Style="{StaticResource SidebarButtonStyle}" DockPanel.Dock="Left" />
+                            <Button Content="Pop" Style="{StaticResource SidebarButtonStyle}" DockPanel.Dock="Left" Click="OpenPlaylistView_Click" Tag="Pop" />
                             <Button Content="*" Style="{StaticResource StarButtonStyle}" Width="30" Height="30" DockPanel.Dock="Right" ToolTip="Add Pop to Favorites" />
                         </DockPanel>
                         <DockPanel Margin="0,6,0,0">
-                            <Button Content="Favorite Playlist 1" Style="{StaticResource SidebarButtonStyle}" DockPanel.Dock="Left" />
+                            <Button Content="Favorite Playlist 1" Style="{StaticResource SidebarButtonStyle}" DockPanel.Dock="Left" Click="OpenPlaylistView_Click" Tag="Favorite Playlist 1" />
                             <Button Content="*" Style="{StaticResource StarButtonStyle}" Width="30" Height="30" DockPanel.Dock="Right" ToolTip="Add Favorite Playlist 1 to Favorites" />
                         </DockPanel>
                         <DockPanel Margin="0,6,0,0">
-                            <Button Content="Favorite Playlist 2" Style="{StaticResource SidebarButtonStyle}" DockPanel.Dock="Left" />
+                            <Button Content="Favorite Playlist 2" Style="{StaticResource SidebarButtonStyle}" DockPanel.Dock="Left" Click="OpenPlaylistView_Click" Tag="Favorite Playlist 2" />
                             <Button Content="*" Style="{StaticResource StarButtonStyle}" Width="30" Height="30" DockPanel.Dock="Right" ToolTip="Add Favorite Playlist 2 to Favorites" />
                         </DockPanel>
                         <Button Content="+ New Playlist" Style="{StaticResource SidebarButtonStyle}" Margin="0,8,0,0" />
@@ -180,75 +180,120 @@
         </Border>
 
         <Border Grid.Row="1" Grid.Column="1" Background="{StaticResource AltPanelBg}" Margin="0,8,0,8" CornerRadius="10">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="20">
-                    <TextBlock Text="Good evening" FontSize="30" FontWeight="Bold" Foreground="{StaticResource PrimaryText}" />
-                    <WrapPanel Margin="0,18,0,30">
-                        <Button Width="260" Height="74" Margin="0,0,12,12" Style="{StaticResource CardButtonStyle}">
-                            <DockPanel>
-                                <Border Width="74" Background="#3D3D3D" />
-                                <TextBlock Text="All songs" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
-                            </DockPanel>
-                        </Button>
-                        <Button Width="260" Height="74" Margin="0,0,12,12" Style="{StaticResource CardButtonStyle}">
-                            <DockPanel>
-                                <Border Width="74" Background="#3A5647" />
-                                <TextBlock Text="Favorite Playlist 1" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
-                            </DockPanel>
-                        </Button>
-                        <Button Width="260" Height="74" Margin="0,0,12,12" Style="{StaticResource CardButtonStyle}">
-                            <DockPanel>
-                                <Border Width="74" Background="#5B3A3A" />
-                                <TextBlock Text="Favorite Playlist 2" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
-                            </DockPanel>
-                        </Button>
-                    </WrapPanel>
+            <Grid>
+                <ScrollViewer x:Name="HomePanelView" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20">
+                        <TextBlock Text="Good evening" FontSize="30" FontWeight="Bold" Foreground="{StaticResource PrimaryText}" />
+                        <WrapPanel Margin="0,18,0,30">
+                            <Button Width="260" Height="74" Margin="0,0,12,12" Style="{StaticResource CardButtonStyle}" Click="OpenPlaylistView_Click" Tag="All songs">
+                                <DockPanel>
+                                    <Border Width="74" Background="#3D3D3D" />
+                                    <TextBlock Text="All songs" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
+                                </DockPanel>
+                            </Button>
+                            <Button Width="260" Height="74" Margin="0,0,12,12" Style="{StaticResource CardButtonStyle}" Click="OpenPlaylistView_Click" Tag="Favorite Playlist 1">
+                                <DockPanel>
+                                    <Border Width="74" Background="#3A5647" />
+                                    <TextBlock Text="Favorite Playlist 1" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
+                                </DockPanel>
+                            </Button>
+                            <Button Width="260" Height="74" Margin="0,0,12,12" Style="{StaticResource CardButtonStyle}" Click="OpenPlaylistView_Click" Tag="Favorite Playlist 2">
+                                <DockPanel>
+                                    <Border Width="74" Background="#5B3A3A" />
+                                    <TextBlock Text="Favorite Playlist 2" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
+                                </DockPanel>
+                            </Button>
+                        </WrapPanel>
 
-                    <DockPanel Margin="0,0,0,12">
-                        <TextBlock Text="Recently played" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryText}" />
-                        <TextBlock Text="Show all" Foreground="{StaticResource SecondaryText}" VerticalAlignment="Bottom" HorizontalAlignment="Right" DockPanel.Dock="Right" />
-                    </DockPanel>
+                        <DockPanel Margin="0,0,0,12">
+                            <TextBlock Text="Recently played" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryText}" />
+                            <TextBlock Text="Show all" Foreground="{StaticResource SecondaryText}" VerticalAlignment="Bottom" HorizontalAlignment="Right" DockPanel.Dock="Right" />
+                        </DockPanel>
 
-                    <UniformGrid Columns="4" Rows="1">
-                        <Button Margin="0,0,12,0" Style="{StaticResource RecentPanelButtonStyle}">
-                            <StackPanel Margin="12">
-                                <Border Height="140" Background="#4A4A4A" CornerRadius="8" />
-                                <TextBlock Text="Ambient Focus" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" Margin="0,10,0,4" />
-                                <TextBlock Text="Calm, instrumental and minimal." Foreground="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Button>
-                        <Button Margin="0,0,12,0" Style="{StaticResource RecentPanelButtonStyle}">
-                            <StackPanel Margin="12">
-                                <Border Height="140" Background="#44556B" CornerRadius="8" />
-                                <TextBlock Text="Indie Morning" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" Margin="0,10,0,4" />
-                                <TextBlock Text="Fresh indie picks for smooth starts." Foreground="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Button>
-                        <Button Margin="0,0,12,0" Style="{StaticResource RecentPanelButtonStyle}">
-                            <StackPanel Margin="12">
-                                <Border Height="140" Background="#5D3D5D" CornerRadius="8" />
-                                <TextBlock Text="Neon Nights" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" Margin="0,10,0,4" />
-                                <TextBlock Text="Synthwave and retro pop energy." Foreground="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Button>
-                        <Button Style="{StaticResource RecentPanelButtonStyle}">
-                            <StackPanel Margin="12">
-                                <Border Height="140" Background="#556048" CornerRadius="8" />
-                                <TextBlock Text="Acoustic Sessions" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" Margin="0,10,0,4" />
-                                <TextBlock Text="Warm vocals and guitar essentials." Foreground="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Button>
-                    </UniformGrid>
-                </StackPanel>
-            </ScrollViewer>
+                        <UniformGrid Columns="4" Rows="1">
+                            <Button Margin="0,0,12,0" Style="{StaticResource RecentPanelButtonStyle}">
+                                <StackPanel Margin="12">
+                                    <Border Height="140" Background="#4A4A4A" CornerRadius="8" />
+                                    <TextBlock Text="Ambient Focus" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" Margin="0,10,0,4" />
+                                    <TextBlock Text="Calm, instrumental and minimal." Foreground="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Button>
+                            <Button Margin="0,0,12,0" Style="{StaticResource RecentPanelButtonStyle}">
+                                <StackPanel Margin="12">
+                                    <Border Height="140" Background="#44556B" CornerRadius="8" />
+                                    <TextBlock Text="Indie Morning" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" Margin="0,10,0,4" />
+                                    <TextBlock Text="Fresh indie picks for smooth starts." Foreground="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Button>
+                            <Button Margin="0,0,12,0" Style="{StaticResource RecentPanelButtonStyle}">
+                                <StackPanel Margin="12">
+                                    <Border Height="140" Background="#5D3D5D" CornerRadius="8" />
+                                    <TextBlock Text="Neon Nights" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" Margin="0,10,0,4" />
+                                    <TextBlock Text="Synthwave and retro pop energy." Foreground="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource RecentPanelButtonStyle}">
+                                <StackPanel Margin="12">
+                                    <Border Height="140" Background="#556048" CornerRadius="8" />
+                                    <TextBlock Text="Acoustic Sessions" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" Margin="0,10,0,4" />
+                                    <TextBlock Text="Warm vocals and guitar essentials." Foreground="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Button>
+                        </UniformGrid>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Border x:Name="PlaylistOverlayView" Background="{StaticResource AltPanelBg}" CornerRadius="10" Visibility="Collapsed">
+                    <Grid Margin="20">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0">
+                            <TextBlock x:Name="PlaylistTitleText" Text="Playlist" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryText}" />
+                            <TextBlock Text="Click a song to play it" Margin="0,4,0,0" Foreground="{StaticResource SecondaryText}" />
+                        </StackPanel>
+
+                        <ListBox x:Name="PlaylistSongList" Grid.Row="1" Margin="0,20,0,0" Background="Transparent" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Stretch">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Margin" Value="0" />
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Background="#252525" BorderBrush="Transparent" Margin="0,0,0,8" Padding="12,10" Click="SongButton_Click" Tag="{Binding}" HorizontalContentAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="56" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Title}" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Artist}" Foreground="{StaticResource SecondaryText}" FontSize="12" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding Duration}" Foreground="{StaticResource SecondaryText}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+            </Grid>
         </Border>
 
         <Border Grid.Row="1" Grid.Column="2" Background="{StaticResource PanelBg}" Margin="6,8,8,8" CornerRadius="10">
             <StackPanel Margin="16">
                 <TextBlock Text="Now Playing" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource PrimaryText}" />
                 <Border Height="250" Margin="0,16,0,14" Background="#3B3B3B" CornerRadius="12" />
-                <TextBlock Text="Midnight City" Foreground="{StaticResource PrimaryText}" FontWeight="Bold" FontSize="18" />
-                <TextBlock Text="M83" Foreground="{StaticResource SecondaryText}" Margin="0,3,0,0" />
+                <TextBlock x:Name="NowPlayingTitleText" Text="Midnight City" Foreground="{StaticResource PrimaryText}" FontWeight="Bold" FontSize="18" />
+                <TextBlock x:Name="NowPlayingArtistText" Text="M83" Foreground="{StaticResource SecondaryText}" Margin="0,3,0,0" />
 
                 <TextBlock Text="Up Next" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" Margin="0,26,0,10" />
                 <Border Background="#242424" CornerRadius="8" Padding="10" Margin="0,0,0,8">
@@ -283,8 +328,8 @@
                 <DockPanel Grid.Column="0" VerticalAlignment="Center">
                     <Border Width="58" Height="58" Background="#3D3D3D" CornerRadius="6" />
                     <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Midnight City" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
-                        <TextBlock Text="M83" Foreground="{StaticResource SecondaryText}" FontSize="12" />
+                        <TextBlock x:Name="BottomNowPlayingTitleText" Text="Midnight City" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
+                        <TextBlock x:Name="BottomNowPlayingArtistText" Text="M83" Foreground="{StaticResource SecondaryText}" FontSize="12" />
                     </StackPanel>
                 </DockPanel>
 
