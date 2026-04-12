@@ -135,20 +135,10 @@ namespace Music_Player
             var playlistName = NewPlaylistNameInput.Text.Trim();
             var playlistGenre = NewPlaylistGenreInput.Text.Trim();
 
-            if (string.IsNullOrWhiteSpace(playlistName))
+            if (!PlaylistRules.TryValidateNewPlaylistName(playlistName, _userPlaylists, out var validationMessage))
             {
                 MessageBox.Show(
-                    "Playlist name is required.",
-                    "Music Player",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-                return;
-            }
-
-            if (_userPlaylists.Any(p => string.Equals(p.Name, playlistName, StringComparison.OrdinalIgnoreCase)))
-            {
-                MessageBox.Show(
-                    "A playlist with this name already exists.",
+                    validationMessage,
                     "Music Player",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -163,7 +153,7 @@ namespace Music_Player
 
             if (_userPlaylists.Count > 3)
             {
-                _homeCarouselStartIndex = _userPlaylists.Count - 3;
+                _homeCarouselStartIndex = _userPlaylists.Count - PlaylistRules.VisibleHomeCards;
             }
 
             SidebarPlaylistsItems.Items.Refresh();
@@ -175,23 +165,13 @@ namespace Music_Player
 
         private void HomeCarouselLeftButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_homeCarouselStartIndex <= 0)
-            {
-                return;
-            }
-
-            _homeCarouselStartIndex--;
+            _homeCarouselStartIndex = PlaylistRules.MoveCarouselLeft(_homeCarouselStartIndex);
             RefreshHomePlaylistCards();
         }
 
         private void HomeCarouselRightButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_homeCarouselStartIndex + 3 >= _userPlaylists.Count)
-            {
-                return;
-            }
-
-            _homeCarouselStartIndex++;
+            _homeCarouselStartIndex = PlaylistRules.MoveCarouselRight(_homeCarouselStartIndex, _userPlaylists.Count);
             RefreshHomePlaylistCards();
         }
 
@@ -225,7 +205,7 @@ namespace Music_Player
             }
 
             HomeCarouselLeftButton.Visibility = _homeCarouselStartIndex > 0 ? Visibility.Visible : Visibility.Hidden;
-            HomeCarouselRightButton.Visibility = _homeCarouselStartIndex + 3 < _userPlaylists.Count ? Visibility.Visible : Visibility.Hidden;
+            HomeCarouselRightButton.Visibility = PlaylistRules.HasMoreRight(_homeCarouselStartIndex, _userPlaylists.Count) ? Visibility.Visible : Visibility.Hidden;
         }
 
         private void SongButton_Click(object sender, RoutedEventArgs e)
@@ -321,6 +301,19 @@ namespace Music_Player
 
         private static string GetSettingsFilePath()
         {
+            var overridePath = Environment.GetEnvironmentVariable("MUSIC_PLAYER_SETTINGS_PATH");
+            if (!string.IsNullOrWhiteSpace(overridePath))
+            {
+                var resolvedPath = Path.GetFullPath(overridePath);
+                var resolvedDir = Path.GetDirectoryName(resolvedPath);
+                if (!string.IsNullOrWhiteSpace(resolvedDir))
+                {
+                    Directory.CreateDirectory(resolvedDir);
+                }
+
+                return resolvedPath;
+            }
+
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             var appFolder = Path.Combine(appData, "Music Player");
             Directory.CreateDirectory(appFolder);
@@ -403,36 +396,6 @@ namespace Music_Player
             return duration.TotalHours >= 1
                 ? duration.ToString(@"h\:mm\:ss")
                 : duration.ToString(@"m\:ss");
-        }
-
-        private sealed class SongItem
-        {
-            public SongItem(string title, string artist, string duration, string filePath)
-            {
-                Title = title;
-                Artist = artist;
-                Duration = duration;
-                FilePath = filePath;
-            }
-
-            public string Title { get; }
-            public string Artist { get; }
-            public string Duration { get; }
-            public string FilePath { get; }
-        }
-
-        private sealed class PlaylistItem
-        {
-            public PlaylistItem(string name, string genre, List<SongItem> songs)
-            {
-                Name = name;
-                Genre = genre;
-                Songs = songs;
-            }
-
-            public string Name { get; }
-            public string Genre { get; }
-            public List<SongItem> Songs { get; set; }
         }
 
         private sealed class HomeCard

@@ -1,3 +1,5 @@
 <Solution>
   <Project Path="Music Player/Music Player.csproj" />
+  <Project Path="tests/MusicPlayer.UnitTests/MusicPlayer.UnitTests.csproj" />
+  <Project Path="tests/MusicPlayer.UITests/MusicPlayer.UITests.csproj" />
 </Solution>
