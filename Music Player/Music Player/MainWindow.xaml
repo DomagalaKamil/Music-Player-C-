@@ -68,22 +68,6 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="StarButtonStyle" TargetType="Button">
-            <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="6,4" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Foreground" Value="{StaticResource PrimaryText}" />
-                    <Setter Property="Background" Value="#252525" />
-                </Trigger>
-            </Style.Triggers>
-        </Style>
         <Style x:Key="RecentPanelButtonStyle" TargetType="Button">
             <Setter Property="Foreground" Value="{StaticResource PrimaryText}" />
             <Setter Property="Background" Value="#252525" />
@@ -103,6 +87,29 @@
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#333333" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="PlaylistEntryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryText}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#252525" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -162,20 +169,31 @@
                 <TextBlock Grid.Row="5" Text="Your Library" Foreground="{StaticResource SecondaryText}" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
                 <ScrollViewer Grid.Row="6" VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
                     <StackPanel>
-                        <Button Content="All songs" Style="{StaticResource SidebarButtonStyle}" Click="OpenPlaylistView_Click" Tag="All songs" />
-                        <DockPanel Margin="0,6,0,0">
-                            <Button Content="Pop" Style="{StaticResource SidebarButtonStyle}" DockPanel.Dock="Left" Click="OpenPlaylistView_Click" Tag="Pop" />
-                            <Button Content="*" Style="{StaticResource StarButtonStyle}" Width="30" Height="30" DockPanel.Dock="Right" ToolTip="Add Pop to Favorites" />
-                        </DockPanel>
-                        <DockPanel Margin="0,6,0,0">
-                            <Button Content="Favorite Playlist 1" Style="{StaticResource SidebarButtonStyle}" DockPanel.Dock="Left" Click="OpenPlaylistView_Click" Tag="Favorite Playlist 1" />
-                            <Button Content="*" Style="{StaticResource StarButtonStyle}" Width="30" Height="30" DockPanel.Dock="Right" ToolTip="Add Favorite Playlist 1 to Favorites" />
-                        </DockPanel>
-                        <DockPanel Margin="0,6,0,0">
-                            <Button Content="Favorite Playlist 2" Style="{StaticResource SidebarButtonStyle}" DockPanel.Dock="Left" Click="OpenPlaylistView_Click" Tag="Favorite Playlist 2" />
-                            <Button Content="*" Style="{StaticResource StarButtonStyle}" Width="30" Height="30" DockPanel.Dock="Right" ToolTip="Add Favorite Playlist 2 to Favorites" />
-                        </DockPanel>
-                        <Button Content="+ New Playlist" Style="{StaticResource SidebarButtonStyle}" Margin="0,8,0,0" />
+                        <Button Content="All songs" Style="{StaticResource SidebarButtonStyle}" Click="OpenAllSongsPlaylist_Click" />
+                        <ItemsControl x:Name="SidebarPlaylistsItems" Margin="0,6,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource PlaylistEntryButtonStyle}" Click="SidebarPlaylistButton_Click" Tag="{Binding}">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Genre}" Foreground="{StaticResource SecondaryText}" FontSize="11">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Genre}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Content="+ New Playlist" Style="{StaticResource SidebarButtonStyle}" Margin="0,8,0,0" Click="OpenCreatePlaylistModal_Click" />
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
@@ -186,26 +204,51 @@
                 <ScrollViewer x:Name="HomePanelView" VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="20">
                         <TextBlock Text="Good evening" FontSize="30" FontWeight="Bold" Foreground="{StaticResource PrimaryText}" />
-                        <WrapPanel Margin="0,18,0,30">
-                            <Button Width="260" Height="74" Margin="0,0,12,12" Style="{StaticResource CardButtonStyle}" Click="OpenPlaylistView_Click" Tag="All songs">
+                        <Grid Margin="0,18,0,30">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="44" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="44" />
+                            </Grid.ColumnDefinitions>
+
+                            <Button x:Name="HomeCarouselLeftButton" Grid.Column="0" Content="&lt;" Width="32" Height="32" VerticalAlignment="Center" HorizontalAlignment="Center" Background="#2A2A2A" Foreground="{StaticResource PrimaryText}" BorderBrush="Transparent" Click="HomeCarouselLeftButton_Click" />
+
+                            <Button x:Name="HomePlaylistCard1" Grid.Column="1" Height="86" Style="{StaticResource CardButtonStyle}" Click="HomePlaylistCard_Click">
                                 <DockPanel>
-                                    <Border Width="74" Background="#3D3D3D" />
-                                    <TextBlock Text="All songs" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
+                                    <Border x:Name="HomePlaylistArt1" Width="74" Background="#3D3D3D" />
+                                    <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="HomePlaylistTitle1" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
+                                        <TextBlock x:Name="HomePlaylistGenre1" Foreground="{StaticResource SecondaryText}" FontSize="11" />
+                                    </StackPanel>
                                 </DockPanel>
                             </Button>
-                            <Button Width="260" Height="74" Margin="0,0,12,12" Style="{StaticResource CardButtonStyle}" Click="OpenPlaylistView_Click" Tag="Favorite Playlist 1">
+
+                            <Button x:Name="HomePlaylistCard2" Grid.Column="3" Height="86" Style="{StaticResource CardButtonStyle}" Click="HomePlaylistCard_Click">
                                 <DockPanel>
-                                    <Border Width="74" Background="#3A5647" />
-                                    <TextBlock Text="Favorite Playlist 1" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
+                                    <Border x:Name="HomePlaylistArt2" Width="74" Background="#3A5647" />
+                                    <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="HomePlaylistTitle2" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
+                                        <TextBlock x:Name="HomePlaylistGenre2" Foreground="{StaticResource SecondaryText}" FontSize="11" />
+                                    </StackPanel>
                                 </DockPanel>
                             </Button>
-                            <Button Width="260" Height="74" Margin="0,0,12,12" Style="{StaticResource CardButtonStyle}" Click="OpenPlaylistView_Click" Tag="Favorite Playlist 2">
+
+                            <Button x:Name="HomePlaylistCard3" Grid.Column="5" Height="86" Style="{StaticResource CardButtonStyle}" Click="HomePlaylistCard_Click">
                                 <DockPanel>
-                                    <Border Width="74" Background="#5B3A3A" />
-                                    <TextBlock Text="Favorite Playlist 2" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
+                                    <Border x:Name="HomePlaylistArt3" Width="74" Background="#5B3A3A" />
+                                    <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="HomePlaylistTitle3" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
+                                        <TextBlock x:Name="HomePlaylistGenre3" Foreground="{StaticResource SecondaryText}" FontSize="11" />
+                                    </StackPanel>
                                 </DockPanel>
                             </Button>
-                        </WrapPanel>
+
+                            <Button x:Name="HomeCarouselRightButton" Grid.Column="6" Content="&gt;" Width="32" Height="32" VerticalAlignment="Center" HorizontalAlignment="Center" Background="#2A2A2A" Foreground="{StaticResource PrimaryText}" BorderBrush="Transparent" Click="HomeCarouselRightButton_Click" />
+                        </Grid>
 
                         <DockPanel Margin="0,0,0,12">
                             <TextBlock Text="Recently played" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryText}" />
@@ -365,6 +408,64 @@
                     </Border>
                 </StackPanel>
             </Grid>
+        </Border>
+        <Border x:Name="CreatePlaylistModalOverlay" Grid.RowSpan="3" Grid.ColumnSpan="3" Background="#88000000" Visibility="Collapsed">
+            <Border Width="640" Height="560" Background="{StaticResource PanelBg}" CornerRadius="12" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Create Playlist" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryText}" />
+
+                    <StackPanel Grid.Row="1" Margin="0,14,0,0">
+                        <TextBlock Text="Playlist Name" Foreground="{StaticResource SecondaryText}" FontSize="12" />
+                        <TextBox x:Name="NewPlaylistNameInput" Height="34" Margin="0,4,0,0" Background="#242424" Foreground="{StaticResource PrimaryText}" BorderBrush="#333333" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="2" Margin="0,12,0,0">
+                        <TextBlock Text="Playlist Genre (optional)" Foreground="{StaticResource SecondaryText}" FontSize="12" />
+                        <TextBox x:Name="NewPlaylistGenreInput" Height="34" Margin="0,4,0,0" Background="#242424" Foreground="{StaticResource PrimaryText}" BorderBrush="#333333" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="3" Margin="0,14,0,0">
+                        <TextBlock Text="Select Songs" Foreground="{StaticResource SecondaryText}" FontSize="12" Margin="0,0,0,6" />
+                        <ListBox x:Name="NewPlaylistSongsList" Background="#1E1E1E" BorderBrush="#333333" SelectionMode="Multiple">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding" Value="10,8" />
+                                    <Setter Property="Background" Value="#252525" />
+                                    <Setter Property="Margin" Value="0,0,0,6" />
+                                    <Setter Property="Foreground" Value="{StaticResource PrimaryText}" />
+                                    <Style.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="#1DB954" />
+                                            <Setter Property="Foreground" Value="#000000" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Artist}" FontSize="11" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+                        <Button Content="Cancel" Width="90" Height="34" Margin="0,0,8,0" Background="#2A2A2A" Foreground="{StaticResource PrimaryText}" BorderBrush="Transparent" Click="CloseCreatePlaylistModal_Click" />
+                        <Button Content="Create Playlist" Width="130" Height="34" Background="{StaticResource AccentGreen}" Foreground="#000000" BorderBrush="Transparent" FontWeight="Bold" Click="CreatePlaylist_Click" />
+                    </StackPanel>
+                </Grid>
+            </Border>
         </Border>
     </Grid>
 </Window>

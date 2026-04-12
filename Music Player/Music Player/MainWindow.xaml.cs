@@ -1,29 +1,45 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Controls;
-using TagLib;
+using System.Windows.Media;
+using Microsoft.Win32;
 
 namespace Music_Player
 {
     public partial class MainWindow : Window
     {
         private const string SettingsFileName = "settings.json";
+
         private static readonly HashSet<string> SupportedMusicExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
             ".mp3", ".mp4", ".m4a", ".wav", ".flac", ".aac", ".ogg", ".wma", ".opus", ".aiff", ".alac"
         };
 
+        private static readonly string[] HomeCardColorPalette =
+        {
+            "#3D3D3D", "#3A5647", "#5B3A3A", "#44556B", "#5D3D5D", "#556048"
+        };
+
+        private string? _musicFolderPath;
         private List<SongItem> _allSongs = new();
+        private readonly List<PlaylistItem> _userPlaylists = new();
+        private int _homeCarouselStartIndex;
 
         public MainWindow()
         {
             InitializeComponent();
+
+            LoadSettingsAndLibrary();
+
             PlaylistSongList.ItemsSource = _allSongs;
-            TryLoadSavedMusicFolder();
+            NewPlaylistSongsList.ItemsSource = _allSongs;
+            SidebarPlaylistsItems.ItemsSource = _userPlaylists;
+
+            RefreshHomePlaylistCards();
         }
 
         private void UploadMusic_Click(object sender, RoutedEventArgs e)
@@ -38,14 +54,17 @@ namespace Music_Player
                 return;
             }
 
-            var loadedSongs = LoadSongsFromFolder(folderDialog.FolderName);
-            _allSongs = loadedSongs;
-            PlaylistSongList.ItemsSource = _allSongs;
-            SaveMusicFolderPath(folderDialog.FolderName);
+            _musicFolderPath = folderDialog.FolderName;
+            _allSongs = LoadSongsFromFolder(_musicFolderPath);
 
-            PlaylistTitleText.Text = "All songs";
-            HomePanelView.Visibility = Visibility.Collapsed;
-            PlaylistOverlayView.Visibility = Visibility.Visible;
+            RebindPlaylistSongsToLibrary();
+
+            PlaylistSongList.ItemsSource = _allSongs;
+            NewPlaylistSongsList.ItemsSource = _allSongs;
+
+            OpenPlaylistView("All songs", _allSongs);
+            RefreshHomePlaylistCards();
+            SaveSettings();
 
             if (_allSongs.Count == 0)
             {
@@ -57,16 +76,35 @@ namespace Music_Player
             }
         }
 
-        private void OpenPlaylistView_Click(object sender, RoutedEventArgs e)
+        private void OpenAllSongsPlaylist_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button playlistButton)
+            OpenPlaylistView("All songs", _allSongs);
+        }
+
+        private void SidebarPlaylistButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { Tag: PlaylistItem playlist })
             {
                 return;
             }
 
-            var playlistName = playlistButton.Tag as string ?? playlistButton.Content?.ToString() ?? "Playlist";
-            PlaylistTitleText.Text = playlistName;
-            PlaylistSongList.ItemsSource = _allSongs;
+            OpenPlaylistView(playlist.Name, playlist.Songs);
+        }
+
+        private void HomePlaylistCard_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { Tag: PlaylistItem playlist })
+            {
+                return;
+            }
+
+            OpenPlaylistView(playlist.Name, playlist.Songs);
+        }
+
+        private void OpenPlaylistView(string title, List<SongItem> songs)
+        {
+            PlaylistTitleText.Text = title;
+            PlaylistSongList.ItemsSource = songs;
 
             HomePanelView.Visibility = Visibility.Collapsed;
             PlaylistOverlayView.Visibility = Visibility.Visible;
@@ -76,6 +114,118 @@ namespace Music_Player
         {
             PlaylistOverlayView.Visibility = Visibility.Collapsed;
             HomePanelView.Visibility = Visibility.Visible;
+        }
+
+        private void OpenCreatePlaylistModal_Click(object sender, RoutedEventArgs e)
+        {
+            NewPlaylistNameInput.Text = string.Empty;
+            NewPlaylistGenreInput.Text = string.Empty;
+            NewPlaylistSongsList.ItemsSource = _allSongs;
+            NewPlaylistSongsList.SelectedItems.Clear();
+            CreatePlaylistModalOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void CloseCreatePlaylistModal_Click(object sender, RoutedEventArgs e)
+        {
+            CreatePlaylistModalOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        private void CreatePlaylist_Click(object sender, RoutedEventArgs e)
+        {
+            var playlistName = NewPlaylistNameInput.Text.Trim();
+            var playlistGenre = NewPlaylistGenreInput.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(playlistName))
+            {
+                MessageBox.Show(
+                    "Playlist name is required.",
+                    "Music Player",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            if (_userPlaylists.Any(p => string.Equals(p.Name, playlistName, StringComparison.OrdinalIgnoreCase)))
+            {
+                MessageBox.Show(
+                    "A playlist with this name already exists.",
+                    "Music Player",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            var selectedSongs = NewPlaylistSongsList.SelectedItems
+                .OfType<SongItem>()
+                .ToList();
+
+            _userPlaylists.Add(new PlaylistItem(playlistName, playlistGenre, selectedSongs));
+
+            if (_userPlaylists.Count > 3)
+            {
+                _homeCarouselStartIndex = _userPlaylists.Count - 3;
+            }
+
+            SidebarPlaylistsItems.Items.Refresh();
+            RefreshHomePlaylistCards();
+            SaveSettings();
+
+            CreatePlaylistModalOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        private void HomeCarouselLeftButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_homeCarouselStartIndex <= 0)
+            {
+                return;
+            }
+
+            _homeCarouselStartIndex--;
+            RefreshHomePlaylistCards();
+        }
+
+        private void HomeCarouselRightButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_homeCarouselStartIndex + 3 >= _userPlaylists.Count)
+            {
+                return;
+            }
+
+            _homeCarouselStartIndex++;
+            RefreshHomePlaylistCards();
+        }
+
+        private void RefreshHomePlaylistCards()
+        {
+            var cards = new[]
+            {
+                new HomeCard(HomePlaylistCard1, HomePlaylistTitle1, HomePlaylistGenre1, HomePlaylistArt1),
+                new HomeCard(HomePlaylistCard2, HomePlaylistTitle2, HomePlaylistGenre2, HomePlaylistArt2),
+                new HomeCard(HomePlaylistCard3, HomePlaylistTitle3, HomePlaylistGenre3, HomePlaylistArt3)
+            };
+
+            for (var i = 0; i < cards.Length; i++)
+            {
+                var playlistIndex = _homeCarouselStartIndex + i;
+                var card = cards[i];
+
+                if (playlistIndex >= _userPlaylists.Count)
+                {
+                    card.Button.Visibility = Visibility.Collapsed;
+                    continue;
+                }
+
+                var playlist = _userPlaylists[playlistIndex];
+                card.Button.Visibility = Visibility.Visible;
+                card.Button.Tag = playlist;
+                card.Title.Text = playlist.Name;
+                card.Genre.Text = playlist.Genre;
+                card.Genre.Visibility = string.IsNullOrWhiteSpace(playlist.Genre) ? Visibility.Collapsed : Visibility.Visible;
+                card.Art.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(HomeCardColorPalette[playlistIndex % HomeCardColorPalette.Length]));
+            }
+
+            HomeCarouselLeftButton.Visibility = _homeCarouselStartIndex > 0 ? Visibility.Visible : Visibility.Hidden;
+            HomeCarouselRightButton.Visibility = _homeCarouselStartIndex + 3 < _userPlaylists.Count ? Visibility.Visible : Visibility.Hidden;
         }
 
         private void SongButton_Click(object sender, RoutedEventArgs e)
@@ -91,6 +241,84 @@ namespace Music_Player
             BottomNowPlayingArtistText.Text = selectedSong.Artist;
         }
 
+        private void LoadSettingsAndLibrary()
+        {
+            var settings = ReadSettings();
+            _musicFolderPath = settings.MusicFolderPath;
+
+            if (!string.IsNullOrWhiteSpace(_musicFolderPath) && Directory.Exists(_musicFolderPath))
+            {
+                _allSongs = LoadSongsFromFolder(_musicFolderPath);
+            }
+            else
+            {
+                _allSongs = new List<SongItem>();
+            }
+
+            var songMap = _allSongs.ToDictionary(song => song.FilePath, StringComparer.OrdinalIgnoreCase);
+            foreach (var storedPlaylist in settings.Playlists)
+            {
+                if (string.IsNullOrWhiteSpace(storedPlaylist.Name))
+                {
+                    continue;
+                }
+
+                var playlistSongs = storedPlaylist.SongPaths
+                    .Where(path => songMap.ContainsKey(path))
+                    .Select(path => songMap[path])
+                    .ToList();
+
+                _userPlaylists.Add(new PlaylistItem(storedPlaylist.Name.Trim(), storedPlaylist.Genre?.Trim() ?? string.Empty, playlistSongs));
+            }
+        }
+
+        private void SaveSettings()
+        {
+            try
+            {
+                var settings = new AppSettings
+                {
+                    MusicFolderPath = _musicFolderPath,
+                    Playlists = _userPlaylists.Select(playlist => new StoredPlaylist
+                    {
+                        Name = playlist.Name,
+                        Genre = playlist.Genre,
+                        SongPaths = playlist.Songs.Select(song => song.FilePath).ToList()
+                    }).ToList()
+                };
+
+                var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                System.IO.File.WriteAllText(GetSettingsFilePath(), json);
+            }
+            catch (Exception)
+            {
+                // Ignore save failures to keep the app responsive.
+            }
+        }
+
+        private static AppSettings ReadSettings()
+        {
+            try
+            {
+                var settingsPath = GetSettingsFilePath();
+                if (!System.IO.File.Exists(settingsPath))
+                {
+                    return new AppSettings();
+                }
+
+                var json = System.IO.File.ReadAllText(settingsPath);
+                return JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+            }
+            catch (Exception)
+            {
+                return new AppSettings();
+            }
+        }
+
         private static string GetSettingsFilePath()
         {
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -99,48 +327,15 @@ namespace Music_Player
             return Path.Combine(appFolder, SettingsFileName);
         }
 
-        private void SaveMusicFolderPath(string folderPath)
+        private void RebindPlaylistSongsToLibrary()
         {
-            try
+            var songMap = _allSongs.ToDictionary(song => song.FilePath, StringComparer.OrdinalIgnoreCase);
+            foreach (var playlist in _userPlaylists)
             {
-                var settings = new AppSettings { MusicFolderPath = folderPath };
-                var json = JsonSerializer.Serialize(settings);
-                System.IO.File.WriteAllText(GetSettingsFilePath(), json);
-            }
-            catch (Exception)
-            {
-                // Ignore save failures to avoid blocking the main flow.
-            }
-        }
-
-        private void TryLoadSavedMusicFolder()
-        {
-            try
-            {
-                var settingsPath = GetSettingsFilePath();
-                if (!System.IO.File.Exists(settingsPath))
-                {
-                    return;
-                }
-
-                var json = System.IO.File.ReadAllText(settingsPath);
-                var settings = JsonSerializer.Deserialize<AppSettings>(json);
-                if (settings == null || string.IsNullOrWhiteSpace(settings.MusicFolderPath))
-                {
-                    return;
-                }
-
-                if (!Directory.Exists(settings.MusicFolderPath))
-                {
-                    return;
-                }
-
-                _allSongs = LoadSongsFromFolder(settings.MusicFolderPath);
-                PlaylistSongList.ItemsSource = _allSongs;
-            }
-            catch (Exception)
-            {
-                // Ignore load failures and continue with empty list.
+                playlist.Songs = playlist.Songs
+                    .Where(song => songMap.ContainsKey(song.FilePath))
+                    .Select(song => songMap[song.FilePath])
+                    .ToList();
             }
         }
 
@@ -197,7 +392,7 @@ namespace Music_Player
             }
             catch (Exception)
             {
-                // Keep fallback title/artist/duration values when metadata cannot be read.
+                // Keep fallback values when metadata cannot be read.
             }
 
             return new SongItem(title, artist, duration, filePath);
@@ -226,9 +421,47 @@ namespace Music_Player
             public string FilePath { get; }
         }
 
+        private sealed class PlaylistItem
+        {
+            public PlaylistItem(string name, string genre, List<SongItem> songs)
+            {
+                Name = name;
+                Genre = genre;
+                Songs = songs;
+            }
+
+            public string Name { get; }
+            public string Genre { get; }
+            public List<SongItem> Songs { get; set; }
+        }
+
+        private sealed class HomeCard
+        {
+            public HomeCard(Button button, TextBlock title, TextBlock genre, Border art)
+            {
+                Button = button;
+                Title = title;
+                Genre = genre;
+                Art = art;
+            }
+
+            public Button Button { get; }
+            public TextBlock Title { get; }
+            public TextBlock Genre { get; }
+            public Border Art { get; }
+        }
+
+        private sealed class StoredPlaylist
+        {
+            public string Name { get; init; } = string.Empty;
+            public string Genre { get; init; } = string.Empty;
+            public List<string> SongPaths { get; init; } = new();
+        }
+
         private sealed class AppSettings
         {
             public string? MusicFolderPath { get; init; }
+            public List<StoredPlaylist> Playlists { get; init; } = new();
         }
     }
 }
