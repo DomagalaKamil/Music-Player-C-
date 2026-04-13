@@ -28,6 +28,10 @@ namespace Music_Player
         private List<SongItem> _allSongs = new();
         private readonly List<PlaylistItem> _userPlaylists = new();
         private PlaylistItem? _editingPlaylist;
+        private readonly MediaPlayer _mediaPlayer = new();
+        private List<SongItem> _activePlaylistSongs = new();
+        private int _activeSongIndex = -1;
+        private bool _isPlaying;
         private int _homeCarouselStartIndex;
 
         public MainWindow()
@@ -39,6 +43,8 @@ namespace Music_Player
             PlaylistSongList.ItemsSource = _allSongs;
             NewPlaylistSongsList.ItemsSource = _allSongs;
             SidebarPlaylistsItems.ItemsSource = _userPlaylists;
+            _activePlaylistSongs = _allSongs;
+            _mediaPlayer.MediaEnded += MediaPlayer_MediaEnded;
 
             RefreshHomePlaylistCards();
         }
@@ -106,6 +112,7 @@ namespace Music_Player
         {
             PlaylistTitleText.Text = title;
             PlaylistSongList.ItemsSource = songs;
+            _activePlaylistSongs = songs;
 
             HomePanelView.Visibility = Visibility.Collapsed;
             PlaylistOverlayView.Visibility = Visibility.Visible;
@@ -307,10 +314,139 @@ namespace Music_Player
                 return;
             }
 
-            NowPlayingTitleText.Text = selectedSong.Title;
-            NowPlayingArtistText.Text = selectedSong.Artist;
-            BottomNowPlayingTitleText.Text = selectedSong.Title;
-            BottomNowPlayingArtistText.Text = selectedSong.Artist;
+            PlaySong(selectedSong, _activePlaylistSongs);
+        }
+
+        private void PlayPauseControlButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_activeSongIndex < 0 || _activeSongIndex >= _activePlaylistSongs.Count)
+            {
+                return;
+            }
+
+            if (_isPlaying)
+            {
+                _mediaPlayer.Pause();
+                _isPlaying = false;
+            }
+            else
+            {
+                _mediaPlayer.Play();
+                _isPlaying = true;
+            }
+
+            UpdatePlayPauseButtonState();
+        }
+
+        private void PrevControlButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_activePlaylistSongs.Count == 0)
+            {
+                return;
+            }
+
+            var previousIndex = _activeSongIndex <= 0 ? 0 : _activeSongIndex - 1;
+            PlaySongByIndex(previousIndex);
+        }
+
+        private void NextControlButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_activePlaylistSongs.Count == 0)
+            {
+                return;
+            }
+
+            var nextIndex = _activeSongIndex + 1;
+            if (nextIndex >= _activePlaylistSongs.Count)
+            {
+                nextIndex = _activePlaylistSongs.Count - 1;
+            }
+
+            PlaySongByIndex(nextIndex);
+        }
+
+        private void MediaPlayer_MediaEnded(object? sender, EventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (_activePlaylistSongs.Count == 0 || _activeSongIndex < 0)
+                {
+                    _isPlaying = false;
+                    UpdatePlayPauseButtonState();
+                    return;
+                }
+
+                var nextIndex = _activeSongIndex + 1;
+                if (nextIndex < _activePlaylistSongs.Count)
+                {
+                    PlaySongByIndex(nextIndex);
+                }
+                else
+                {
+                    _isPlaying = false;
+                    UpdatePlayPauseButtonState();
+                }
+            });
+        }
+
+        private void PlaySong(SongItem song, List<SongItem> sourceSongs)
+        {
+            if (!File.Exists(song.FilePath))
+            {
+                MessageBox.Show(
+                    "This file no longer exists on disk.",
+                    "Music Player",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            _activePlaylistSongs = sourceSongs;
+            _activeSongIndex = _activePlaylistSongs.FindIndex(item =>
+                string.Equals(item.FilePath, song.FilePath, StringComparison.OrdinalIgnoreCase));
+
+            try
+            {
+                _mediaPlayer.Open(new Uri(song.FilePath, UriKind.Absolute));
+                _mediaPlayer.Play();
+                _isPlaying = true;
+                UpdateNowPlayingLabels(song);
+                UpdatePlayPauseButtonState();
+            }
+            catch (Exception)
+            {
+                _isPlaying = false;
+                UpdatePlayPauseButtonState();
+                MessageBox.Show(
+                    "Unable to play this file format on your system.",
+                    "Music Player",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+
+        private void PlaySongByIndex(int songIndex)
+        {
+            if (songIndex < 0 || songIndex >= _activePlaylistSongs.Count)
+            {
+                return;
+            }
+
+            var song = _activePlaylistSongs[songIndex];
+            PlaySong(song, _activePlaylistSongs);
+        }
+
+        private void UpdateNowPlayingLabels(SongItem song)
+        {
+            NowPlayingTitleText.Text = song.Title;
+            NowPlayingArtistText.Text = song.Artist;
+            BottomNowPlayingTitleText.Text = song.Title;
+            BottomNowPlayingArtistText.Text = song.Artist;
+        }
+
+        private void UpdatePlayPauseButtonState()
+        {
+            PlayPauseControlButton.Content = _isPlaying ? "Pause" : "Play";
         }
 
         private void LoadSettingsAndLibrary()
