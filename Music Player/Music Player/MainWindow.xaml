@@ -174,23 +174,32 @@
                         <ItemsControl x:Name="SidebarPlaylistsItems" Margin="0,6,0,0">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Button Style="{StaticResource PlaylistEntryButtonStyle}" Click="SidebarPlaylistButton_Click" Tag="{Binding}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Name}" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
-                                            <TextBlock Text="{Binding Genre}" Foreground="{StaticResource SecondaryText}" FontSize="11">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Visibility" Value="Visible" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding Genre}" Value="">
-                                                                <Setter Property="Visibility" Value="Collapsed" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                        </StackPanel>
-                                    </Button>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0" Style="{StaticResource PlaylistEntryButtonStyle}" Click="SidebarPlaylistButton_Click" Tag="{Binding}">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource PrimaryText}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Genre}" Foreground="{StaticResource SecondaryText}" FontSize="11">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Genre}" Value="">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Grid.Column="1" Content="Edit" Width="40" Height="26" Margin="4,0,0,0" Background="#2A2A2A" Foreground="{StaticResource SecondaryText}" BorderBrush="Transparent" Click="OpenEditPlaylistModal_Click" Tag="{Binding}" />
+                                        <Button Grid.Column="2" Content="Del" Width="36" Height="26" Margin="4,0,0,0" Background="#3A1F1F" Foreground="{StaticResource SecondaryText}" BorderBrush="Transparent" Click="DeletePlaylist_Click" Tag="{Binding}" />
+                                    </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -420,7 +429,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="Create Playlist" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryText}" />
+                    <TextBlock x:Name="CreatePlaylistModalTitle" Text="Create Playlist" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryText}" />
 
                     <StackPanel Grid.Row="1" Margin="0,14,0,0">
                         <TextBlock Text="Playlist Name" Foreground="{StaticResource SecondaryText}" FontSize="12" />

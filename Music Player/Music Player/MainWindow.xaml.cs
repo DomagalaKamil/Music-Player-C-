@@ -27,6 +27,7 @@ namespace Music_Player
         private string? _musicFolderPath;
         private List<SongItem> _allSongs = new();
         private readonly List<PlaylistItem> _userPlaylists = new();
+        private PlaylistItem? _editingPlaylist;
         private int _homeCarouselStartIndex;
 
         public MainWindow()
@@ -118,6 +119,9 @@ namespace Music_Player
 
         private void OpenCreatePlaylistModal_Click(object sender, RoutedEventArgs e)
         {
+            _editingPlaylist = null;
+            CreatePlaylistModalTitle.Text = "Create Playlist";
+            CreatePlaylistConfirmButton.Content = "Create Playlist";
             NewPlaylistNameInput.Text = string.Empty;
             NewPlaylistGenreInput.Text = string.Empty;
             NewPlaylistSongsList.ItemsSource = _allSongs;
@@ -125,8 +129,64 @@ namespace Music_Player
             CreatePlaylistModalOverlay.Visibility = Visibility.Visible;
         }
 
+        private void OpenEditPlaylistModal_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { Tag: PlaylistItem playlist })
+            {
+                return;
+            }
+
+            _editingPlaylist = playlist;
+            CreatePlaylistModalTitle.Text = "Update Playlist";
+            CreatePlaylistConfirmButton.Content = "Update Playlist";
+            NewPlaylistNameInput.Text = playlist.Name;
+            NewPlaylistGenreInput.Text = playlist.Genre;
+            NewPlaylistSongsList.ItemsSource = _allSongs;
+            NewPlaylistSongsList.SelectedItems.Clear();
+
+            var selectedPaths = playlist.Songs.Select(song => song.FilePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var song in _allSongs.Where(song => selectedPaths.Contains(song.FilePath)))
+            {
+                NewPlaylistSongsList.SelectedItems.Add(song);
+            }
+
+            CreatePlaylistModalOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void DeletePlaylist_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { Tag: PlaylistItem playlist })
+            {
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                $"Delete playlist '{playlist.Name}'?",
+                "Music Player",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            _userPlaylists.Remove(playlist);
+            _editingPlaylist = null;
+            ClampCarouselStart();
+            SidebarPlaylistsItems.Items.Refresh();
+            RefreshHomePlaylistCards();
+            SaveSettings();
+
+            if (string.Equals(PlaylistTitleText.Text, playlist.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                OpenPlaylistView("All songs", _allSongs);
+            }
+        }
+
         private void CloseCreatePlaylistModal_Click(object sender, RoutedEventArgs e)
         {
+            _editingPlaylist = null;
             CreatePlaylistModalOverlay.Visibility = Visibility.Collapsed;
         }
 
@@ -135,7 +195,7 @@ namespace Music_Player
             var playlistName = NewPlaylistNameInput.Text.Trim();
             var playlistGenre = NewPlaylistGenreInput.Text.Trim();
 
-            if (!PlaylistRules.TryValidateNewPlaylistName(playlistName, _userPlaylists, out var validationMessage))
+            if (!PlaylistRules.TryValidateNewPlaylistName(playlistName, _userPlaylists, out var validationMessage, _editingPlaylist?.Name))
             {
                 MessageBox.Show(
                     validationMessage,
@@ -149,13 +209,32 @@ namespace Music_Player
                 .OfType<SongItem>()
                 .ToList();
 
-            _userPlaylists.Add(new PlaylistItem(playlistName, playlistGenre, selectedSongs));
-
-            if (_userPlaylists.Count > 3)
+            if (_editingPlaylist is null)
             {
-                _homeCarouselStartIndex = _userPlaylists.Count - PlaylistRules.VisibleHomeCards;
+                _userPlaylists.Add(new PlaylistItem(playlistName, playlistGenre, selectedSongs));
+
+                if (_userPlaylists.Count > PlaylistRules.VisibleHomeCards)
+                {
+                    _homeCarouselStartIndex = _userPlaylists.Count - PlaylistRules.VisibleHomeCards;
+                }
+            }
+            else
+            {
+                var existingIndex = _userPlaylists.IndexOf(_editingPlaylist);
+                if (existingIndex >= 0)
+                {
+                    _userPlaylists[existingIndex] = new PlaylistItem(playlistName, playlistGenre, selectedSongs);
+                }
+
+                if (string.Equals(PlaylistTitleText.Text, _editingPlaylist.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    OpenPlaylistView(playlistName, selectedSongs);
+                }
+
+                _editingPlaylist = null;
             }
 
+            ClampCarouselStart();
             SidebarPlaylistsItems.Items.Refresh();
             RefreshHomePlaylistCards();
             SaveSettings();
@@ -206,6 +285,12 @@ namespace Music_Player
 
             HomeCarouselLeftButton.Visibility = _homeCarouselStartIndex > 0 ? Visibility.Visible : Visibility.Hidden;
             HomeCarouselRightButton.Visibility = PlaylistRules.HasMoreRight(_homeCarouselStartIndex, _userPlaylists.Count) ? Visibility.Visible : Visibility.Hidden;
+        }
+
+        private void ClampCarouselStart()
+        {
+            var maxStart = Math.Max(0, _userPlaylists.Count - PlaylistRules.VisibleHomeCards);
+            _homeCarouselStartIndex = Math.Min(_homeCarouselStartIndex, maxStart);
         }
 
         private void SongButton_Click(object sender, RoutedEventArgs e)

@@ -4,7 +4,7 @@ public static class PlaylistRules
 {
     public const int VisibleHomeCards = 3;
 
-    public static bool TryValidateNewPlaylistName(string? name, IEnumerable<PlaylistItem> existingPlaylists, out string errorMessage)
+    public static bool TryValidateNewPlaylistName(string? name, IEnumerable<PlaylistItem> existingPlaylists, out string errorMessage, string? currentPlaylistName = null)
     {
         var trimmedName = name?.Trim() ?? string.Empty;
 
@@ -14,7 +14,9 @@ public static class PlaylistRules
             return false;
         }
 
-        if (existingPlaylists.Any(p => string.Equals(p.Name, trimmedName, StringComparison.OrdinalIgnoreCase)))
+        if (existingPlaylists.Any(p =>
+                string.Equals(p.Name, trimmedName, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(p.Name, currentPlaylistName, StringComparison.OrdinalIgnoreCase)))
         {
             errorMessage = "A playlist with this name already exists.";
             return false;
