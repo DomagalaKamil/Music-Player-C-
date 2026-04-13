@@ -29,6 +29,43 @@ public class PlaylistRulesTests
     }
 
     [Test]
+    public void TryValidateNewPlaylistName_AllowsSameName_WhenEditingCurrentPlaylist()
+    {
+        var existing = new List<PlaylistItem>
+        {
+            new("Road Trip", "Pop", new List<SongItem>())
+        };
+
+        var result = PlaylistRules.TryValidateNewPlaylistName(
+            "Road Trip",
+            existing,
+            out var message,
+            currentPlaylistName: "Road Trip");
+
+        Assert.That(result, Is.True);
+        Assert.That(message, Is.EqualTo(string.Empty));
+    }
+
+    [Test]
+    public void TryValidateNewPlaylistName_RejectsRenamingToAnotherExistingPlaylist()
+    {
+        var existing = new List<PlaylistItem>
+        {
+            new("Road Trip", "Pop", new List<SongItem>()),
+            new("Evening Mix", "Chill", new List<SongItem>())
+        };
+
+        var result = PlaylistRules.TryValidateNewPlaylistName(
+            "Road Trip",
+            existing,
+            out var message,
+            currentPlaylistName: "Evening Mix");
+
+        Assert.That(result, Is.False);
+        Assert.That(message, Is.EqualTo("A playlist with this name already exists."));
+    }
+
+    [Test]
     public void TryValidateNewPlaylistName_ReturnsTrue_ForUniqueName()
     {
         var existing = new List<PlaylistItem>

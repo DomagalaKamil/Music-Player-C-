@@ -160,11 +160,18 @@ namespace Music_Player
                 return;
             }
 
-            var confirm = MessageBox.Show(
-                $"Delete playlist '{playlist.Name}'?",
-                "Music Player",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
+            var autoConfirmDelete = string.Equals(
+                Environment.GetEnvironmentVariable("MUSIC_PLAYER_TEST_AUTO_CONFIRM_DELETE"),
+                "1",
+                StringComparison.Ordinal);
+
+            var confirm = autoConfirmDelete
+                ? MessageBoxResult.Yes
+                : MessageBox.Show(
+                    $"Delete playlist '{playlist.Name}'?",
+                    "Music Player",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
 
             if (confirm != MessageBoxResult.Yes)
             {
