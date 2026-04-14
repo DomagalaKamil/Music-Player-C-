@@ -389,11 +389,11 @@
 
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Button Content="Shf" Margin="6,0" Background="Transparent" BorderBrush="Transparent" Foreground="{StaticResource SecondaryText}" />
+                        <Button x:Name="ShuffleControlButton" Content="Shf" Margin="6,0" Background="Transparent" BorderBrush="Transparent" Foreground="{StaticResource SecondaryText}" Click="ShuffleControlButton_Click" />
                         <Button x:Name="PrevControlButton" Content="Prev" Margin="6,0" Background="Transparent" BorderBrush="Transparent" Foreground="{StaticResource PrimaryText}" Click="PrevControlButton_Click" />
                         <Button x:Name="PlayPauseControlButton" Content="Play" Width="44" Height="36" Margin="6,0" Background="{StaticResource PrimaryText}" BorderBrush="Transparent" Foreground="#000000" FontWeight="Bold" Click="PlayPauseControlButton_Click" />
                         <Button x:Name="NextControlButton" Content="Next" Margin="6,0" Background="Transparent" BorderBrush="Transparent" Foreground="{StaticResource PrimaryText}" Click="NextControlButton_Click" />
-                        <Button Content="Rpt" Margin="6,0" Background="Transparent" BorderBrush="Transparent" Foreground="{StaticResource SecondaryText}" />
+                        <Button x:Name="RepeatControlButton" Content="Rpt" Margin="6,0" Background="Transparent" BorderBrush="Transparent" Foreground="{StaticResource SecondaryText}" Click="RepeatControlButton_Click" />
                     </StackPanel>
                     <Grid Margin="0,8,0,0">
                         <Grid.ColumnDefinitions>
@@ -412,9 +412,15 @@
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <TextBlock Text="Vol" Foreground="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <Border Width="120" Height="4" CornerRadius="2" Background="#5A5A5A" VerticalAlignment="Center">
-                        <Border Width="72" HorizontalAlignment="Left" Background="{StaticResource SecondaryText}" CornerRadius="2" />
-                    </Border>
+                    <Slider x:Name="VolumeControlSlider"
+                            Width="120"
+                            Minimum="0"
+                            Maximum="100"
+                            Value="70"
+                            TickFrequency="10"
+                            IsSnapToTickEnabled="False"
+                            VerticalAlignment="Center"
+                            ValueChanged="VolumeControlSlider_ValueChanged" />
                 </StackPanel>
             </Grid>
         </Border>

@@ -32,6 +32,9 @@ namespace Music_Player
         private List<SongItem> _activePlaylistSongs = new();
         private int _activeSongIndex = -1;
         private bool _isPlaying;
+        private bool _isShuffleEnabled;
+        private bool _isRepeatEnabled;
+        private readonly Random _random = new();
         private int _homeCarouselStartIndex;
 
         public MainWindow()
@@ -45,8 +48,11 @@ namespace Music_Player
             SidebarPlaylistsItems.ItemsSource = _userPlaylists;
             _activePlaylistSongs = _allSongs;
             _mediaPlayer.MediaEnded += MediaPlayer_MediaEnded;
+            _mediaPlayer.Volume = VolumeControlSlider.Value / 100d;
 
             RefreshHomePlaylistCards();
+            UpdateShuffleButtonState();
+            UpdateRepeatButtonState();
         }
 
         private void UploadMusic_Click(object sender, RoutedEventArgs e)
@@ -345,7 +351,7 @@ namespace Music_Player
                 return;
             }
 
-            var previousIndex = _activeSongIndex <= 0 ? 0 : _activeSongIndex - 1;
+            var previousIndex = GetPreviousIndex();
             PlaySongByIndex(previousIndex);
         }
 
@@ -356,10 +362,12 @@ namespace Music_Player
                 return;
             }
 
-            var nextIndex = _activeSongIndex + 1;
-            if (nextIndex >= _activePlaylistSongs.Count)
+            var nextIndex = GetNextIndex();
+            if (nextIndex < 0)
             {
-                nextIndex = _activePlaylistSongs.Count - 1;
+                _isPlaying = false;
+                UpdatePlayPauseButtonState();
+                return;
             }
 
             PlaySongByIndex(nextIndex);
@@ -376,8 +384,8 @@ namespace Music_Player
                     return;
                 }
 
-                var nextIndex = _activeSongIndex + 1;
-                if (nextIndex < _activePlaylistSongs.Count)
+                var nextIndex = GetNextIndex();
+                if (nextIndex >= 0)
                 {
                     PlaySongByIndex(nextIndex);
                 }
@@ -434,6 +442,105 @@ namespace Music_Player
 
             var song = _activePlaylistSongs[songIndex];
             PlaySong(song, _activePlaylistSongs);
+        }
+
+        private int GetPreviousIndex()
+        {
+            if (_activePlaylistSongs.Count == 0)
+            {
+                return -1;
+            }
+
+            if (_isShuffleEnabled)
+            {
+                return GetRandomSongIndex();
+            }
+
+            if (_activeSongIndex <= 0)
+            {
+                return _isRepeatEnabled ? _activePlaylistSongs.Count - 1 : 0;
+            }
+
+            return _activeSongIndex - 1;
+        }
+
+        private int GetNextIndex()
+        {
+            if (_activePlaylistSongs.Count == 0)
+            {
+                return -1;
+            }
+
+            if (_isShuffleEnabled)
+            {
+                return GetRandomSongIndex();
+            }
+
+            if (_activeSongIndex < 0)
+            {
+                return 0;
+            }
+
+            var nextIndex = _activeSongIndex + 1;
+            if (nextIndex >= _activePlaylistSongs.Count)
+            {
+                return _isRepeatEnabled ? 0 : -1;
+            }
+
+            return nextIndex;
+        }
+
+        private int GetRandomSongIndex()
+        {
+            if (_activePlaylistSongs.Count == 0)
+            {
+                return -1;
+            }
+
+            if (_activePlaylistSongs.Count == 1)
+            {
+                return 0;
+            }
+
+            int randomIndex;
+            do
+            {
+                randomIndex = _random.Next(0, _activePlaylistSongs.Count);
+            }
+            while (randomIndex == _activeSongIndex);
+
+            return randomIndex;
+        }
+
+        private void ShuffleControlButton_Click(object sender, RoutedEventArgs e)
+        {
+            _isShuffleEnabled = !_isShuffleEnabled;
+            UpdateShuffleButtonState();
+        }
+
+        private void RepeatControlButton_Click(object sender, RoutedEventArgs e)
+        {
+            _isRepeatEnabled = !_isRepeatEnabled;
+            UpdateRepeatButtonState();
+        }
+
+        private void VolumeControlSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            _mediaPlayer.Volume = e.NewValue / 100d;
+        }
+
+        private void UpdateShuffleButtonState()
+        {
+            ShuffleControlButton.Foreground = _isShuffleEnabled
+                ? (Brush)FindResource("PrimaryText")
+                : (Brush)FindResource("SecondaryText");
+        }
+
+        private void UpdateRepeatButtonState()
+        {
+            RepeatControlButton.Foreground = _isRepeatEnabled
+                ? (Brush)FindResource("PrimaryText")
+                : (Brush)FindResource("SecondaryText");
         }
 
         private void UpdateNowPlayingLabels(SongItem song)
