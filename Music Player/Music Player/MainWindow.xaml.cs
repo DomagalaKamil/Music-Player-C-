@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace Music_Player
@@ -35,6 +36,11 @@ namespace Music_Player
         private bool _isShuffleEnabled;
         private bool _isRepeatEnabled;
         private readonly Random _random = new();
+        private readonly DispatcherTimer _playbackPositionTimer = new()
+        {
+            Interval = TimeSpan.FromMilliseconds(500)
+        };
+        private bool _isUpdatingSeekSlider;
         private int _homeCarouselStartIndex;
 
         public MainWindow()
@@ -47,8 +53,12 @@ namespace Music_Player
             NewPlaylistSongsList.ItemsSource = _allSongs;
             SidebarPlaylistsItems.ItemsSource = _userPlaylists;
             _activePlaylistSongs = _allSongs;
+            _mediaPlayer.MediaOpened += MediaPlayer_MediaOpened;
             _mediaPlayer.MediaEnded += MediaPlayer_MediaEnded;
             _mediaPlayer.Volume = VolumeControlSlider.Value / 100d;
+            _playbackPositionTimer.Tick += PlaybackPositionTimer_Tick;
+            _playbackPositionTimer.Start();
+            ResetPlaybackTimeline();
 
             RefreshHomePlaylistCards();
             UpdateShuffleButtonState();
@@ -397,6 +407,16 @@ namespace Music_Player
             });
         }
 
+        private void MediaPlayer_MediaOpened(object? sender, EventArgs e)
+        {
+            Dispatcher.Invoke(UpdateTimelineFromPlayer);
+        }
+
+        private void PlaybackPositionTimer_Tick(object? sender, EventArgs e)
+        {
+            UpdateTimelineFromPlayer();
+        }
+
         private void PlaySong(SongItem song, List<SongItem> sourceSongs)
         {
             if (!File.Exists(song.FilePath))
@@ -412,6 +432,7 @@ namespace Music_Player
             _activePlaylistSongs = sourceSongs;
             _activeSongIndex = _activePlaylistSongs.FindIndex(item =>
                 string.Equals(item.FilePath, song.FilePath, StringComparison.OrdinalIgnoreCase));
+            ResetPlaybackTimeline();
 
             try
             {
@@ -527,6 +548,75 @@ namespace Music_Player
         private void VolumeControlSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             _mediaPlayer.Volume = e.NewValue / 100d;
+        }
+
+        private void SeekControlSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (_isUpdatingSeekSlider || !_mediaPlayer.NaturalDuration.HasTimeSpan)
+            {
+                return;
+            }
+
+            var duration = _mediaPlayer.NaturalDuration.TimeSpan;
+            if (duration.TotalSeconds <= 0)
+            {
+                return;
+            }
+
+            var requestedPosition = TimeSpan.FromSeconds(Math.Max(0, Math.Min(e.NewValue, duration.TotalSeconds)));
+            _mediaPlayer.Position = requestedPosition;
+            UpdateTimelineFromPlayer();
+        }
+
+        private void ResetPlaybackTimeline()
+        {
+            _isUpdatingSeekSlider = true;
+            SeekControlSlider.Maximum = 1;
+            SeekControlSlider.Value = 0;
+            _isUpdatingSeekSlider = false;
+            CurrentTimeText.Text = "0:00";
+            TotalTimeText.Text = "0:00";
+        }
+
+        private void UpdateTimelineFromPlayer()
+        {
+            if (!_mediaPlayer.NaturalDuration.HasTimeSpan)
+            {
+                return;
+            }
+
+            var duration = _mediaPlayer.NaturalDuration.TimeSpan;
+            if (duration.TotalSeconds <= 0)
+            {
+                return;
+            }
+
+            var position = _mediaPlayer.Position;
+            if (position < TimeSpan.Zero)
+            {
+                position = TimeSpan.Zero;
+            }
+
+            if (position > duration)
+            {
+                position = duration;
+            }
+
+            _isUpdatingSeekSlider = true;
+            SeekControlSlider.Maximum = duration.TotalSeconds;
+            SeekControlSlider.Value = position.TotalSeconds;
+            _isUpdatingSeekSlider = false;
+
+            var includeHours = duration.TotalHours >= 1;
+            CurrentTimeText.Text = FormatPlaybackTime(position, includeHours);
+            TotalTimeText.Text = FormatPlaybackTime(duration, includeHours);
+        }
+
+        private static string FormatPlaybackTime(TimeSpan value, bool includeHours)
+        {
+            return includeHours
+                ? value.ToString(@"h\:mm\:ss")
+                : value.ToString(@"m\:ss");
         }
 
         private void UpdateShuffleButtonState()
