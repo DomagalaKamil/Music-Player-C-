@@ -467,70 +467,22 @@ namespace Music_Player
 
         private int GetPreviousIndex()
         {
-            if (_activePlaylistSongs.Count == 0)
-            {
-                return -1;
-            }
-
-            if (_isShuffleEnabled)
-            {
-                return GetRandomSongIndex();
-            }
-
-            if (_activeSongIndex <= 0)
-            {
-                return _isRepeatEnabled ? _activePlaylistSongs.Count - 1 : 0;
-            }
-
-            return _activeSongIndex - 1;
+            return PlaybackRules.GetPreviousIndex(
+                _activeSongIndex,
+                _activePlaylistSongs.Count,
+                _isShuffleEnabled,
+                _isRepeatEnabled,
+                _random);
         }
 
         private int GetNextIndex()
         {
-            if (_activePlaylistSongs.Count == 0)
-            {
-                return -1;
-            }
-
-            if (_isShuffleEnabled)
-            {
-                return GetRandomSongIndex();
-            }
-
-            if (_activeSongIndex < 0)
-            {
-                return 0;
-            }
-
-            var nextIndex = _activeSongIndex + 1;
-            if (nextIndex >= _activePlaylistSongs.Count)
-            {
-                return _isRepeatEnabled ? 0 : -1;
-            }
-
-            return nextIndex;
-        }
-
-        private int GetRandomSongIndex()
-        {
-            if (_activePlaylistSongs.Count == 0)
-            {
-                return -1;
-            }
-
-            if (_activePlaylistSongs.Count == 1)
-            {
-                return 0;
-            }
-
-            int randomIndex;
-            do
-            {
-                randomIndex = _random.Next(0, _activePlaylistSongs.Count);
-            }
-            while (randomIndex == _activeSongIndex);
-
-            return randomIndex;
+            return PlaybackRules.GetNextIndex(
+                _activeSongIndex,
+                _activePlaylistSongs.Count,
+                _isShuffleEnabled,
+                _isRepeatEnabled,
+                _random);
         }
 
         private void ShuffleControlButton_Click(object sender, RoutedEventArgs e)
